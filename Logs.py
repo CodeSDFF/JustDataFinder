@@ -62,32 +62,37 @@ def most_popular_authors():
     # For each author/view count tuple, print author -- view count
     for author in results:
         print "     %s: %s views" % (author[0], author[1])
-		
+	
  # Question 3
 
-def most_errors():
-    """On which days did more than 1% of requests lead to errors?"""
-
-    print "\n\n ***** More than 1% of requests lead to errors ***** "
-
+def get_errors():
+		
+    """On which days did more than 1% of requests lead to errors"""
+	
+	
+	
     with db_session_context(DB_NAME) as db:
-        cursor = db.cursor()
-        cursor.execute("""
-            SELECT to_char(creator.day, 'MM/DD/YYYY'),
-              round(
-                (creator.totals*1.0 / request_totals.totals*1.0)*100, 2)
-              as percentage
-            FROM creator, request_totals
-            WHERE creator.day = request_totals.day
-              and (creator.totals*1.0 / request_totals.totals*1.0)*100 > 1
-            ORDER BY percentage desc;
-        """)
-        result = cursor.fetchone()
-
-    print "     %s: %s%%" % (result[0], result[1])
-
+		c = db.cursor()
+		c.execute("SELECT to_char(date, 'FMMonth FMDD, YYYY'), err/total as ratio"
+				  " from (select time::date as date, "
+				  "count(*) as total, "
+				  "sum((status != '200 OK')::int)::float as err "
+				  "from log "
+				  "group by date) as errors "
+				  "where err/total > .01;")
+		errors = c.fetchall()
+    	
+    for i in errors:
+	
+        print "\n\n ***** More than 1% of requests lead to errors ***** ", i[0]
+		
+        print (str(round((i[1]*100), 2)) + '% errors')
+        print ("---------------")
+		
 # Call all the functions if file is executed with the interpreter
 if __name__ == "__main__":
     most_popular_articles()
     most_popular_authors()
-    most_errors()
+    get_errors()
+	
+
